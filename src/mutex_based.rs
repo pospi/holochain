@@ -44,7 +44,7 @@ pub mod gatekeep {
 
     impl ChainRootGatekeeper {
         pub async fn gatekeep(
-            &self,
+            &mut self,
             mut next_write: LmdbTransaction,
             as_at: Address,
             rebasable: bool,
@@ -56,7 +56,7 @@ pub mod gatekeep {
                 if rebasable {
                     rebase_headers(&mut next_write, &chain_root_hash, &as_at);
                 } else {
-                    // we can't. abort transaction.
+                    // we can't recover. abort transaction.
                     return Err(TransactError::HeadMoved);
                 }
             }
@@ -78,7 +78,6 @@ pub mod gatekeep {
         }
     }
 
-    use super::*;
     pub fn get_source_chain_root_hash(_lmdb: &LmdbRead) -> Address {
         unimplemented!()
     }
