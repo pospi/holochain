@@ -1,23 +1,12 @@
 pub mod gatekeep {
     use futures::lock::Mutex;
     use std::sync::Arc;
-    #[cfg(feature = "gatekeep_loop")]
-    use tokio::task;
 
-    
     pub enum TransactError {
         HeadMoved,
     }
     #[derive(Clone)]
     pub struct ChainRootHandle {
-        #[cfg(feature = "gatekeep_loop")]
-        writes: Sender<(
-            LmdbTransaction,
-            Address,
-            bool,
-            Sender<Result<(), TransactError>>,
-        )>,
-        #[cfg(not(feature = "gatekeep_loop"))]
         inner: Arc<Mutex<ChainRootGatekeeper>>,
     }
     struct ChainRootGatekeeper {
@@ -27,17 +16,10 @@ pub mod gatekeep {
 
     impl ChainRootHandle {
         /// Create a handle to a source-chain root manager
-        /// 
+        ///
         /// It is a bug if this function is called twice on the same Lmdb database
         pub fn new(db_write: Arc<Mutex<LmdbUnique>>, db_read: LmdbRead) -> Self {
             let gatekeeper = ChainRootGatekeeper { db_write, db_read };
-            #[cfg(feature = "gatekeep_loop")]
-            {
-                let (send, receive) = channel::create();
-                task::spawn(gatekeeper.start_loop(receive));
-                Self { writes: send }
-            }
-            #[cfg(not(feature = "gatekeep_loop"))]
             {
                 let inner = Arc::new(Mutex::new(gatekeeper));
                 Self { inner }
@@ -50,13 +32,6 @@ pub mod gatekeep {
             valid_at: Address,
             rebasable: bool,
         ) -> Result<(), TransactError> {
-            #[cfg(feature = "gatekeep_loop")]
-            {
-                let (send, receive) = channel::create();
-                self.writes.send((bundle, valid_at, rebasable, send)).await;
-                receive.await
-            }
-            #[cfg(not(feature = "gatekeep_loop"))]
             {
                 self.inner
                     .lock()
@@ -68,25 +43,8 @@ pub mod gatekeep {
     }
 
     impl ChainRootGatekeeper {
-        #[cfg(feature = "gatekeep_loop")]
-        pub async fn start_loop(
-            self,
-            writes: Receiver<(
-                LmdbTransaction,
-                Address,
-                bool,
-                Sender<Result<(), TransactError>>,
-            )>,
-        ) {
-            loop {
-                let (next_write, as_at, rebasable, result_sender) = write_queue.receive().await;
-                let result = self.gatekeep(next_write, as_at, rebasable);
-                result_sender.send(result).await;
-            }
-        }
-
         pub async fn gatekeep(
-            &self,
+            &mut self,
             mut next_write: LmdbTransaction,
             as_at: Address,
             rebasable: bool,
@@ -98,7 +56,7 @@ pub mod gatekeep {
                 if rebasable {
                     rebase_headers(&mut next_write, &chain_root_hash, &as_at);
                 } else {
-                    // we can't. abort transaction.
+                    // we can't recover. abort transaction.
                     return Err(TransactError::HeadMoved);
                 }
             }
@@ -120,33 +78,30 @@ pub mod gatekeep {
         }
     }
 
-
-    use super::*;
     pub fn get_source_chain_root_hash(_lmdb: &LmdbRead) -> Address {
         unimplemented!()
     }
-    
+
     pub fn rebase_headers(_transaction: &mut LmdbTransaction, _valid_at: &Address, _now: &Address) {
         unimplemented!()
     }
-    
+
     pub struct LmdbUnique {}
-    
+
     impl LmdbUnique {
         pub fn apply(&mut self, _transaction: LmdbTransaction) {
             unimplemented!()
         }
-    
+
         pub fn downgrade(&self) -> LmdbRead {
             unimplemented!()
         }
     }
-    
+
     pub struct LmdbRead {}
-    
+
     pub struct LmdbTransaction {}
-    
+
     #[derive(Eq, PartialEq, Debug)]
     pub struct Address {}
-    
 }
