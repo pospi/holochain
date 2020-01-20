@@ -1,6 +1,12 @@
 pub mod gatekeep;
 // pub mod zome_call;
+// pub mod entry;
 pub mod transforms;
+
+/// A 256-bit hash
+// 256 bits = 32 bytes
+#[derive(Eq, PartialEq, Debug)]
+pub struct Address([u8; 32]);
 
 pub fn get_source_chain_root_hash(_lmdb: &LmdbRead) -> Address {
     unimplemented!()
@@ -25,6 +31,3 @@ impl LmdbUnique {
 pub struct LmdbRead {}
 
 pub struct LmdbTransaction {}
-
-#[derive(Eq, PartialEq, Debug)]
-pub struct Address {}

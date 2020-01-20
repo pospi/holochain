@@ -11,4 +11,5 @@ tokio = "*"
 futures = {version = "*", features = ["std"], default-features = false}
 
 [features]
-gatekeep-loop = []
+default = ["strict"]
+strict = []

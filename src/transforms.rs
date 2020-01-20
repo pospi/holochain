@@ -1,130 +1,173 @@
-struct ChainEntry(EntryMetas, EntryContent);
+struct ChainEntry(SignedHeader, EntryContent);
 
-async fn handle_new_publish(entry: ChainEntry) {
-    let (context, content) = entry;
-    // publish the "little h" header for the new entry
-    let create_little_h = DhtTransform {
-        base_hash: hash(context.header()),
-        header_hash: panic!(),
-        notification: NotificationKind::CreateHeader,
-    };
-    // modify the author's special DHT entry to point
-    // to the newly created "little h" header
-    let meta_create_agent_key = DhtTransform {
-        base_hash: context.author().key_hash(),
-        header_hash: panic!(),
-        notification: NotificationKind::AgentActivity,
-    };
+struct Notification {
+    header: SignedHeader,
+    data: NotificationData,
+}
 
-    match context.kind() {
-        CreateEntry => {
-            // publish the new "big E" entry itself
-            let create_big_e = DhtTransform {
-                base_hash: hash(content),
-                header_hash: panic!(),
-                notification: NotificationKind::CreateEntry,
-            };
-        }
-        UpdateEntry => {
-            // publish the creation of the new "big E" entry
-            //
-            // publish the new "big E" entry itself along with a "replaces" pointer
-            // to the old "big E prime" entry
-            let create_big_e = DhtTransform {
-                base_hash: hash(content),
-                header_hash: panic!(),
-                notification: NotificationKind::CreateRevision,
-            };
-            // publish the replacement of the old "big E prime" entry
-            //
-            // modify the old "big E prime" entry to have a "replaced-by" pointer to
-            // the new "big E" entry
-            let modify_big_e_prime = DhtTransform {
-                // FIXME: Negate need for Option::unwrap
-                base_hash: context.as_new_version().unwrap().replaces_hash(),
-                header_hash: panic!(),
-                notification: NotificationKind::ReplacedBy,
-            };
-        }
-        DeleteEntry => {
-            // publish the "little e" entry that invoked the deletion
-            // (for reference and proof of agency)
-            let create_little_e = DhtTransform {
-                base_hash: hash(content),
-                header_hash: panic!(),
-                notification: NotificationKind::CreateEntry,
-            };
-            // publish the deletion of the old "big E prime" entry
-            //
-            // modify the old "big E prime" entry to have a "deleted-by" pointer
-            // to the "little e deletion entry" that was just published
-            let modify_big_e_prime = DhtTransform {
-                // FIXME: Negate need for Option::unwrap
-                base_hash: content.as_deletion_proof().unwrap().deletes_hash(),
-                header_hash: panic!(),
-                notification: NotificationKind::DeletedBy,
-            };
-        }
-        LinkAdd => {
-            // publish the "little e" entry that invoked the link addition
-            // (for reference and proof of agency)
-            let create_little_e = DhtTransform {
-                base_hash: hash(content),
-                header_hash: panic!(),
-                notification: NotificationKind::CreateEntry,
-            };
-            // publish the adding of the link onto the base
-            //
-            // modify the base to have a pointer to the target
-            // and a pointer the proof (stored in the "little e" entry above)
-            let modify_big_e = DhtTransform {
-                // FIXME: Negate need for Option::unwrap
-                base_hash: content.as_linkadd_proof().unwrap().base_hash(),
-                header_hash: panic!(),
-                notification: NotificationKind::LinkActivity,
-            };
-        }
-        LinkRemove => {
-            // publish the "little e" entry that invoked the link removal
-            // (for reference and proof of agency)
-            let create_little_e = DhtTransform {
-                base_hash: hash(content),
-                header_hash: panic!(),
-                notification: NotificationKind::CreateEntry,
-            };
-            // publish the removal of the link from the base
-            //
-            // modify the base to tombstone the pointer to the target
-            // and to have a pointer the proof (stored in the "little e" entry above)
-            let modify_big_e = DhtTransform {
-                // FIXME: Negate need for Option::unwrap
-                base_hash: content.as_linkremove_proof().unwrap().base_hash(),
-                header_hash: panic!(),
-                notification: NotificationKind::LinkActivity,
-            };
-        }
+enum NotificationData {
+    #[cfg(feature = "strict")]
+    StoreHeader {
+        entry: EntryContent,
+    },
+    #[cfg(not(feature = "strict"))]
+    StoreHeader,
+    StoreEntry {
+        entry: EntryContent,
+    },
+    RegisterAgentActivity,
+    RegisterUpdatedTo {
+        entry: EntryContent,
+    },
+    RegisterDeletedBy {
+        entry: EntryContent,
+    },
+    RegisterAddLink {
+        entry: EntryContent,
+    },
+    RegisterRemoveLink {
+        entry: EntryContent,
+    },
+}
+
+fn hash_hood(notification: Notification) -> Address {
+    use NotificationData::*;
+
+    let Notification { header, data } = notification;
+    match data {
+        StoreHeader { .. } => hash(header),
+        StoreEntry { entry } => header.entry_hash(),
+        RegisterAgentActivity => header.author().key_hash(),
+        RegisterUpdatedTo { .. } => header.replaces(),
+        RegisterDeletedBy { entry } => entry.deletes(),
+        RegisterAddLink { entry } => entry.base(),
+        RegisterRemoveLink { entry } => entry.base(),
     }
 }
 
-struct DhtTransform {
-    base_hash: Address,
-    header_hash: Address,
-    notification: NotificationKind,
+// FIXME: avoid allocation or somehow give caller the choice
+fn produce_notifications_from_commit(commit: ChainEntry) -> Vec<Notification> {
+    let ChainEntry(header, entry) = commit;
+
+    let store_header = Notification {
+        // FIXME: avoid cloning
+        header: header.clone(),
+        #[cfg(feature = "strict")]
+        data: NotificationData::StoreHeader {
+            // FIXME: avoid cloning
+            entry: entry.clone(),
+        },
+        #[cfg(not(feature = "strict"))]
+        data: NotificationData::StoreHeader,
+    };
+    let store_entry = Notification {
+        // FIXME: avoid cloning
+        header: header.clone(),
+        data: NotificationData::StoreEntry {
+            // FIXME: avoid cloning
+            entry: entry.clone(),
+        },
+    };
+    let register_agent_activity = Notification {
+        // FIXME: avoid cloning
+        header: header.clone(),
+        data: NotificationData::RegisterAgentActivity,
+    };
+
+    let fourth_notification = match header.kind() {
+        Create => {
+            return vec![store_header, store_entry, register_agent_activity];
+        }
+        Update => {
+            let register_updated_to = Notification {
+                // FIXME: avoid cloning
+                header: header.clone(),
+                data: NotificationData::RegisterUpdatedTo {
+                    entry: entry.clone(),
+                },
+            };
+            register_updated_to
+        }
+        Delete => {
+            let register_deleted_by = Notification {
+                header: header.clone(),
+                data: NotificationData::RegisterDeletedBy {
+                    entry: entry.clone(),
+                },
+            };
+            register_deleted_by
+        }
+        AddLink => {
+            let register_add_link = Notification {
+                header: header.clone(),
+                data: NotificationData::RegisterAddLink {
+                    entry: entry.clone(),
+                },
+            };
+            register_add_link
+        }
+        RemoveLink => {
+            let register_remove_link = Notification {
+                header: header.clone(),
+                data: NotificationData::RegisterRemoveLink {
+                    entry: entry.clone(),
+                },
+            };
+            register_remove_link
+        }
+    };
+
+    vec![
+        store_header,
+        store_entry,
+        register_agent_activity,
+        fourth_notification,
+    ]
 }
 
-enum NotificationKind {
-    CreateHeader, // +h
-    // ^ header_hash doesn't really make sense
-    CreateEntry, // +e || +E
-    // ^ header_hash makes sense
-    // TODO: merge CreateRevision with CreateEntry,
-    // whether it is a revision or not is already encoded in the header.
-    CreateRevision, // +E + --> E'
-    // ^ header_hash makes sense
-    AgentActivity, // ΔKa + --> h
-    // ^ header_hash maybe makes sense (not sure)
-    ReplacedBy, // ΔE' + --> E
-    // ^
-    DeletedBy,    // ΔE' + --> e
-    LinkActivity, // ΔE' (base) + --> target live
+#[derive(Hash)]
+enum HashReadyForm<'a> {
+    // optimization: don't hash signature. it is redundant with header and therefore wastes hash time to include
+    StoredHeader {
+        header: &'a HeaderWithoutSig,
+    },
+    StoredEntry {
+        header: &'a HeaderWithoutSig,
+    },
+    RegisteredAgentActivity {
+        header: &'a HeaderWithoutSig,
+    },
+    RegisteredUpdatedTo {
+        entry: &'a EntryContent,
+        replaces: &'a Address,
+    },
+    RegisteredDeletedBy {
+        entry: &'a DeleteEntry,
+    },
+    RegisteredAddLink {
+        header: &'a HeaderWithoutSig,
+    },
+    // ^ future work: encode idempotency in LinkAdd entries themselves
+    RegisteredRemoveLink {
+        header: &'a HeaderWithoutSig,
+    },
+    // ^ if LinkAdds were idempotent then this could just be entry.
+}
+
+fn unique_hash(notification: &Notification) -> HashReadyForm<'_> {
+    use NotificationData::*;
+
+    let Notification { header, data } = notification;
+    match data {
+        StoreHeader { .. } => HashReadyForm::StoredHeader { header },
+        StoreEntry { .. } => HashReadyForm::StoredEntry { header },
+        RegisterAgentActivity => HashReadyForm::RegisteredAgentActivity { header },
+        RegisterUpdatedTo { entry } => HashReadyForm::RegisteredUpdatedTo {
+            entry,
+            replaces: header.replaces(),
+        },
+        RegisterDeletedBy { entry } => HashReadyForm::RegisteredDeletedBy { entry },
+        RegisterAddLink { .. } => HashReadyForm::RegisteredAddLink { header },
+        RegisterRemoveLink { .. } => HashReadyForm::RegisteredRemoveLink { header },
+    }
 }
