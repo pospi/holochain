@@ -1,33 +1,17 @@
-struct ChainEntry(SignedHeader, EntryContent);
+use crate::entry::{Entry, Header, UpdateHeaderWithEntry, HeaderWithEntry};
+use crate::Signed;
 
-struct Notification {
-    header: SignedHeader,
-    data: NotificationData,
-}
-
-enum NotificationData {
+enum Notification {
     #[cfg(feature = "strict")]
-    StoreHeader {
-        entry: EntryContent,
-    },
+    StoreHeader(Signed<HeaderWithEntry>),
     #[cfg(not(feature = "strict"))]
-    StoreHeader,
-    StoreEntry {
-        entry: EntryContent,
-    },
-    RegisterAgentActivity,
-    RegisterUpdatedTo {
-        entry: EntryContent,
-    },
-    RegisterDeletedBy {
-        entry: EntryContent,
-    },
-    RegisterAddLink {
-        entry: EntryContent,
-    },
-    RegisterRemoveLink {
-        entry: EntryContent,
-    },
+    StoreHeader(Signed<Header>),
+    StoreEntry(Signed<NormalHeader>, BigEEntry),
+    RegisterAgentActivity(Signed<Header>),
+    RegisterUpdatedTo(Signed<UpdateHeader>, BigEEntry),
+    RegisterDeletedBy(Signed<NormalHeader>, DeleteEntry),
+    RegisterAddLink(Signed<NormalHeader>, AddLinkEntry),
+    RegisterRemoveLink(Signed<NormalHeader>, RemoveLinkEntry),
 }
 
 fn hash_hood(notification: Notification) -> Address {
@@ -46,35 +30,13 @@ fn hash_hood(notification: Notification) -> Address {
 }
 
 // FIXME: avoid allocation or somehow give caller the choice
-fn produce_notifications_from_commit(commit: ChainEntry) -> Vec<Notification> {
-    let ChainEntry(header, entry) = commit;
-
-    let store_header = Notification {
-        // FIXME: avoid cloning
-        header: header.clone(),
-        #[cfg(feature = "strict")]
-        data: NotificationData::StoreHeader {
-            // FIXME: avoid cloning
-            entry: entry.clone(),
-        },
-        #[cfg(not(feature = "strict"))]
-        data: NotificationData::StoreHeader,
-    };
-    let store_entry = Notification {
-        // FIXME: avoid cloning
-        header: header.clone(),
-        data: NotificationData::StoreEntry {
-            // FIXME: avoid cloning
-            entry: entry.clone(),
-        },
-    };
-    let register_agent_activity = Notification {
-        // FIXME: avoid cloning
-        header: header.clone(),
-        data: NotificationData::RegisterAgentActivity,
-    };
-
-    let fourth_notification = match header.kind() {
+fn produce_notifications_from_commit(commit: Signed<ChainHeaderWithEntry>) -> Vec<Notification> {
+    let Signed {sig, data: header_with_entry} = commit;
+    let fourth_notification = match header_with_entry {
+        Dna(header, _dna) => {
+            // dna is never published
+            let header = Notification::Sto
+        }
         Create => {
             return vec![store_header, store_entry, register_agent_activity];
         }
@@ -117,6 +79,25 @@ fn produce_notifications_from_commit(commit: ChainEntry) -> Vec<Notification> {
         }
     };
 
+
+    #[cfg(feature = "strict")]
+    let store_header = Notification::StoreHeader {
+        
+    };
+    let store_entry = Notification {
+        // FIXME: avoid cloning
+        header: header.clone(),
+        data: NotificationData::StoreEntry {
+            // FIXME: avoid cloning
+            entry: entry.clone(),
+        },
+    };
+    let register_agent_activity = Notification {
+        // FIXME: avoid cloning
+        header: header.clone(),
+        data: NotificationData::RegisterAgentActivity,
+    };
+
     vec![
         store_header,
         store_entry,
@@ -138,7 +119,7 @@ enum HashReadyForm<'a> {
         header: &'a HeaderWithoutSig,
     },
     RegisteredUpdatedTo {
-        entry: &'a EntryContent,
+        entry: &'a Entry,
         replaces: &'a Address,
     },
     RegisteredDeletedBy {

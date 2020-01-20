@@ -3,6 +3,19 @@ pub mod gatekeep;
 pub mod entry;
 pub mod transforms;
 
+pub trait Sign {}
+
+impl Sign for entry::HeaderWithEntry {}
+impl Sign for entry::Header {}
+impl Sign for entry::ChainHeaderWithEntry {}
+
+pub struct Signed<T: Sign> {
+    pub sig: Signature,
+    pub data: T,
+}
+
+pub struct Signature;
+
 #[derive(Clone)]
 pub struct Dna;
 

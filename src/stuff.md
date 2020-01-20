@@ -37,7 +37,7 @@
 
 
 ## For UpdateEntry replaces field
-- When an agent commits an 'UpdateEntry', I'm assuming that the "replaces" field can't go into the context, because then it would change the hash to be different then if you had just created the entry normally.
+- When an agent commits an 'UpdateEntry', I'm assuming that the "replaces" field can't go into the content, because then it would change the hash to be different then if you had just created the entry normally.
   - Does it go in the metadata then?
     - If so, what metadata do chain headers store? I thought it was very minimal.
 
