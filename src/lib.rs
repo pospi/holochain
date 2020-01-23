@@ -7,11 +7,37 @@ pub trait Sign {}
 
 impl Sign for entry::HeaderWithEntry {}
 impl Sign for entry::Header {}
+impl Sign for entry::NormalHeader {}
+impl Sign for entry::UpdateHeader {}
 impl Sign for entry::ChainHeaderWithEntry {}
 
-pub struct Signed<T: Sign> {
+pub struct Signed<T> {
     pub sig: Signature,
     pub data: T,
+}
+
+impl<T> std::ops::Deref for Signed<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.data
+    }
+}
+
+impl<T> std::ops::DerefMut for Signed<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.data
+    }
+}
+
+impl<T> Signed<T> {
+    pub fn into_inner(self) -> T {
+        self.data
+    }
+}
+
+fn hash<T>(data: T) -> Address {
+    todo!()
 }
 
 pub struct Signature;

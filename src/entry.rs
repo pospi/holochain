@@ -31,6 +31,18 @@ impl HeaderWithEntry {
             (header, entry) => return Err((header, entry)),
         })
     }
+
+    pub fn into_header(self) -> Header {
+        use HeaderWithEntry::*;
+
+        match self {
+            Create(header, _) => Header::Create(header),
+            Update(header, _) => Header::Update(header),
+            Delete(header, _) => Header::Delete(header),
+            AddLink(header, _) => Header::AddLink(header),
+            RemoveLink(header, _) => Header::RemoveLink(header),
+        }
+    }
 }
 
 pub enum ChainHeaderWithEntry {
@@ -62,6 +74,22 @@ pub enum Header {
     RemoveLink(NormalHeader),
 }
 
+impl Header {
+    pub fn author(&self) -> &PublicKey {
+        use Header::*;
+
+        match &self {
+            Dna(min_header) => &min_header.author,
+            Create(normal_header)
+            | Delete(normal_header)
+            | AddLink(normal_header)
+            | RemoveLink(normal_header) => &normal_header.author,
+
+            Update(update_header) => &update_header.author,
+        }
+    }
+}
+
 pub enum Entry {
     BigE(BigEEntry),
     Header(Header),
@@ -77,12 +105,17 @@ pub enum ChainEntry {
 
 pub struct UpdateHeader {
     pub replaces: Address,
-    pub normal_header: NormalHeader,
+    pub prev_header: Address,
+    pub entry: Address,
+    pub author: PublicKey,
+    pub timestamp: Timestamp,
 }
 
 pub struct NormalHeader {
     pub prev_header: Address,
-    pub min_header: MinHeader,
+    pub entry: Address,
+    pub author: PublicKey,
+    pub timestamp: Timestamp,
 }
 
 pub struct MinHeader {
@@ -112,6 +145,7 @@ pub struct AddLinkEntry {
 }
 
 pub struct RemoveLinkEntry {
+    pub base: Address,
     /// Address of the AddLinkEntry to be removed
     pub removes: Address,
 }
