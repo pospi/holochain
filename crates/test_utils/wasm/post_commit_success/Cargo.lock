@@ -115,13 +115,13 @@ dependencies = [
 [[package]]
 name = "holochain_serialized_bytes"
 version = "0.0.39"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01d69e13b9478fc7d89eb4168e2747be1345706b61a03f4eaf3ebbd42540f7e0"
+source = "git+https://github.com/holochain/holochain-serialization?branch=serde-bytes#9366749b8b9e5bd53b8c585e123c270d6b5cf7b9"
 dependencies = [
  "holochain_serialized_bytes_derive",
  "rmp-serde",
  "serde",
  "serde-transcode",
+ "serde_bytes",
  "serde_json",
  "thiserror",
 ]
@@ -129,8 +129,7 @@ dependencies = [
 [[package]]
 name = "holochain_serialized_bytes_derive"
 version = "0.0.39"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a176ead4e41cf09a7e47516ad585de6e7cf71185fd1576c2129655d6bb22ae67"
+source = "git+https://github.com/holochain/holochain-serialization?branch=serde-bytes#9366749b8b9e5bd53b8c585e123c270d6b5cf7b9"
 dependencies = [
  "quote 0.6.13",
  "syn 0.15.44",

@@ -23,3 +23,4 @@ test_wasm_common = { version = "=0.0.1", path = "../../wasm_common" }
 wee_alloc = "=0.4.5"
 
 [patch.crates-io]
+holochain_serialized_bytes = { git = "https://github.com/holochain/holochain-serialization", branch = "serde-bytes" }
