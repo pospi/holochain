@@ -26,6 +26,7 @@ exclude = [
 
 [patch.crates-io]
 holochain_serialized_bytes = { git = "https://github.com/holochain/holochain-serialization", branch = "serde-bytes" }
+holochain_wasmer_common = { path = "/home/michael/Holo/holochain-wasmer/crates/common" }
 # holochain_serialized_bytes = { version = "=0.0.39", git = "https://github.com/holochain/holochain-serialization.git", branch = "unpinned" }
 # holochain_wasmer_common = { version = "=0.0.30", git = "https://github.com/holochain/holochain-wasmer.git", branch = "unpinned" }
 # holochain_wasmer_guest = { version = "=0.0.30", git = "https://github.com/holochain/holochain-wasmer.git", branch = "unpinned" }

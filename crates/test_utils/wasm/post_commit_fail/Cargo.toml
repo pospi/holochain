@@ -25,3 +25,4 @@ wee_alloc = "=0.4.5"
 
 [patch.crates-io]
 holochain_serialized_bytes = { git = "https://github.com/holochain/holochain-serialization", branch = "serde-bytes" }
+holochain_wasmer_common = { path = "/home/michael/Holo/holochain-wasmer/crates/common" }

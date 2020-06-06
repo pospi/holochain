@@ -150,8 +150,6 @@ dependencies = [
 [[package]]
 name = "holochain_wasmer_common"
 version = "0.0.31"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b27e28189282db511fe8f214b7e311b6e9325682bcd15841958777447d9ad5d2"
 dependencies = [
  "byte-slice-cast",
  "holochain_serialized_bytes",
