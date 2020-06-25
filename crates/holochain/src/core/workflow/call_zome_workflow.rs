@@ -15,6 +15,7 @@ use fallible_iterator::FallibleIterator;
 use holochain_state::prelude::*;
 use unsafe_invoke_zome_workspace::UnsafeInvokeZomeWorkspace;
 
+pub mod actor;
 pub mod unsafe_invoke_zome_workspace;
 
 /// Placeholder for the return value of a zome invocation

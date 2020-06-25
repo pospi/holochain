@@ -18,6 +18,9 @@ pub enum WorkspaceError {
 
     #[error(transparent)]
     SourceChainError(#[from] SourceChainError),
+
+    #[error(transparent)]
+    GhostError(#[from] ghost_actor::GhostError),
 }
 
 #[allow(missing_docs)]
