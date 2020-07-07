@@ -67,15 +67,17 @@ pub fn get_links<'a>(
 
 #[cfg(test)]
 pub mod wasm_test {
+    use crate::core::queue_consumer::TriggerSender;
     use crate::core::state::workspace::Workspace;
+    use crate::core::workflow::integrate_dht_ops_workflow::{
+        integrate_dht_ops_workflow, IntegrateDhtOpsWorkspace,
+    };
+    use crate::core::workflow::produce_dht_ops_workflow::{
+        produce_dht_ops_workflow, ProduceDhtOpsWorkspace,
+    };
     use holochain_state::env::ReadManager;
     use holochain_wasm_test_utils::TestWasm;
     use test_wasm_common::TestString;
-    use crate::core::workflow::produce_dht_ops_workflow::{produce_dht_ops_workflow, ProduceDhtOpsWorkspace};
-    use crate::core::workflow::integrate_dht_ops_workflow::{integrate_dht_ops_workflow, IntegrateDhtOpsWorkspace};
-    use crate::core::{
-        queue_consumer::TriggerSender,
-    };
 
     #[tokio::test(threaded_scheduler)]
     async fn ribosome_entry_hash_path_ls() {

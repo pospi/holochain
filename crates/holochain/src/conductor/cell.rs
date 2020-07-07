@@ -313,7 +313,9 @@ impl Cell {
         _dht_hash: holochain_types::composite_hash::AnyDhtHash,
         ops: Vec<(holo_hash::DhtOpHash, holochain_types::dht_op::DhtOp)>,
     ) -> CellResult<()> {
-        if from_agent == *self.id().agent_pubkey() {
+        let my_pubkey = self.id().agent_pubkey();
+        dbg!("agents", &from_agent, my_pubkey, from_agent == *my_pubkey);
+        if from_agent == *my_pubkey {
             // Don't handle messages we published to ourselves, because that
             // would trigger another publish, and cause an infinite loop.
             //
