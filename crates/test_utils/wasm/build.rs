@@ -31,11 +31,11 @@ fn main() {
     {
         println!("cargo:rerun-if-changed={}", item.path().display());
     }
-    let wasm_out = std::env::var_os("HC_TEST_WASM_DIR");
-    let cargo_command = std::env::var_os("CARGO");
-    let cargo_command = cargo_command.as_deref().unwrap_or_else(|| "cargo".as_ref());
+    let wasm_out = std::env::var("HC_TEST_WASM_DIR").unwrap_or(format!("{}/target", wasms_path));
+    let cargo_command = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
+    let mut cmd = std::process::Command::new(cargo_command);
+    cmd.env("CARGO_TARGET_DIR", wasm_out);
     if should_build {
-        let mut cmd = std::process::Command::new(cargo_command);
         cmd.stdout(Stdio::piped());
         cmd.stderr(Stdio::piped());
         cmd.arg("build")
@@ -45,39 +45,17 @@ fn main() {
             .arg("--workspace")
             .arg("--target")
             .arg("wasm32-unknown-unknown");
-        match wasm_out {
-            Some(wasm_out) => {
-                cmd.env("CARGO_TARGET_DIR", wasm_out);
-            }
-            None => {
-                cmd.env("CARGO_TARGET_DIR", format!("{}/target", wasms_path));
-            }
-        }
-        let output = cmd.output().unwrap();
-
-        assert!(
-            output.status.success(),
-            std::io::stderr().write_all(&output.stderr)
-        );
     } else {
-        let mut cmd = std::process::Command::new(cargo_command);
         cmd.arg("check")
             .arg("--manifest-path")
             .arg("wasm_workspace/Cargo.toml");
-        match wasm_out {
-            Some(wasm_out) => {
-                cmd.env("CARGO_TARGET_DIR", wasm_out);
-            }
-            None => {
-                cmd.env("CARGO_TARGET_DIR", format!("{}/target", wasms_path));
-            }
-        }
-        let output = cmd.output().unwrap();
-        assert!(
-            output.status.success(),
-            std::io::stderr().write_all(&output.stderr)
-        );
     }
+
+    let output = cmd.output().unwrap();
+    assert!(
+        output.status.success(),
+        std::io::stderr().write_all(&output.stderr)
+    );
 }
 
 /// Return the list of local path dependencies specified in the Cargo.toml

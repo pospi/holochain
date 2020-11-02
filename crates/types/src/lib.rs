@@ -24,7 +24,7 @@ pub mod timestamp;
 pub mod universal_map;
 pub mod validate;
 
-// #[cfg(test)]
+#[cfg(test)]
 pub mod test_utils;
 
 #[doc(inline)]
