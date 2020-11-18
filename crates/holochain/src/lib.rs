@@ -15,3 +15,5 @@ pub mod test_utils;
 // this is here so that wasm ribosome macros can reference it
 pub use holochain_wasmer_host;
 pub use tracing;
+
+pub use conductor::ConductorHandle;

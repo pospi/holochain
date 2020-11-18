@@ -1412,6 +1412,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "holochain_test_conductor"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "derive_more",
+ "holo_hash",
+ "holochain",
+ "shrinkwraprs",
+]
+
+[[package]]
 name = "holochain_types"
 version = "0.0.1"
 dependencies = [

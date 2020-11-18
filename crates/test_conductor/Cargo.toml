@@ -1,0 +1,18 @@
+[package]
+name = "holochain_test_conductor"
+version = "0.0.1"
+description = "A wrapper for Holochain conductors, suitable for end-to-end tests"
+license = "CAL-1.0"
+homepage = "https://github.com/holochain/holochain"
+documentation = "https://github.com/holochain/holochain"
+authors = [ "Holochain Core Dev Team <devcore@holochain.org>" ]
+edition = "2018"
+
+[dependencies]
+anyhow = "1.0.26"
+derive_more = "0.99.3"
+shrinkwraprs = "0.3"
+holo_hash = { version = "0.0.1", path = "../holo_hash", features = ["full"] }
+holochain = { version = "0.0.1", path = "../holochain" }
+
+[dev-dependencies]
